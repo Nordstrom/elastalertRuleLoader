@@ -1,6 +1,6 @@
 build := build
 app_name := elastalertRuleLoader
-DOCKER_IMAGE_NAME ?= nordstrom/elastalertRuleLoader
+DOCKER_IMAGE_NAME ?= nordstrom/elastalertruleloader
 DOCKER_IMAGE_TAG  ?= 1.0.2
 
 .PHONY: build_image release_image
