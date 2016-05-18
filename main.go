@@ -2,13 +2,11 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
-	"reflect"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -95,7 +93,7 @@ func watchForServices(kubeClient *kclient.Client, callback func(interface{})) kc
 	return serviceStore
 }
 
-func gatherRulesFromServices(kubeClient *kclient.Client) []string {
+func gatherRulesFromServices(kubeClient *kclient.Client) []map[string]interface{} {
 	si := kubeClient.Services(kapi.NamespaceAll)
 	serviceList, err := si.List(kapi.ListOptions{
 		LabelSelector: klabels.Everything(),
@@ -104,7 +102,7 @@ func gatherRulesFromServices(kubeClient *kclient.Client) []string {
 		log.Printf("Unable to list services: %s", err)
 	}
 
-	ruleList := []string{}
+	var ruleList []map[string]interface{}
 
 	for _, svc := range serviceList.Items {
 		anno := svc.GetObjectMeta().GetAnnotations()
@@ -112,29 +110,14 @@ func gatherRulesFromServices(kubeClient *kclient.Client) []string {
 		log.Printf("Processing Service - %s\n", name)
 
 		for k, v := range anno {
-			log.Printf("- %s", k)
 			if k == "nordstrom.net/elastalertAlerts" {
-				var alerts interface{}
-				err := json.Unmarshal([]byte(v), &alerts)
-				if err != nil {
-					log.Printf("Error decoding json object that contains alert(s): %s\n", err)
+				if err := yaml.Unmarshal([]byte(v), &ruleList); err != nil {
+					log.Printf("Unable to unmarshal elastalert rule for service %s. Error: %s; Rule: %s. Skipping rule.\n", name, err, v)
 				}
-				if reflect.TypeOf(alerts).Kind() == reflect.Slice {
-					collection := reflect.ValueOf(alerts)
-					for i := 0; i < collection.Len(); i++ {
-						s := collection.Index(i).Interface().(string)
-						ruleList = append(ruleList, s)
-					}
-				}
-				if reflect.TypeOf(alerts).Kind() == reflect.String {
-					ruleList = append(ruleList, reflect.ValueOf(alerts).String())
-				}
-
 			}
-
 		}
-
 	}
+
 	return ruleList
 }
 
@@ -186,19 +169,34 @@ func writeRule(rule elastalertRule, rulesLocation string) error {
 	return nil
 }
 
-func processRule(inRule string) (elastalertRule, error) {
-	m := make(map[interface{}]interface{})
+func processRule(ruleMap map[string]interface{}) (elastalertRule, error) {
+	eaRule := elastalertRule{}
+	if str, ok := ruleMap["name"]; ok {
+		eaRule.name = str.(string)
+	}
 
-	err := yaml.Unmarshal([]byte(inRule), &m)
+	// Set 'index' if not set
+	if _, ok := ruleMap["index"]; !ok {
+		ruleMap["index"] = fmt.Sprintf("%s-*", os.Getenv("PLATFORM-INSTANCE-NAME"))
+	}
+	// Set 'alert' if not set
+	if _, ok := ruleMap["alert"]; !ok {
+		ruleMap["alert"] = "alert: elastalert_modules.prometheus_alertmanager.PrometheusAlertManagerAlerter"
+	}
+	// Set 'alertmanager_url' if not set
+	if _, ok := ruleMap["alertmanager_url"]; !ok {
+		ruleMap["alert"] = fmt.Sprintf("http://%s:%s/", os.Getenv("PROMETHEUS_SERVICE_HOST"), os.Getenv("PROMETHEUS_SERVICE_PORT_ALERTMANAGER"))
+	}
+	// Set 'use_kibana4_dashboard' if not set
+	if _, ok := ruleMap["use_kibana4_dashboard"]; !ok {
+		ruleMap["use_kibana4_dashboard"] = "/_plugin/kibana/#/dashboard"
+	}
+
+	r, err := yaml.Marshal(&ruleMap)
 	if err != nil {
-		return elastalertRule{}, fmt.Errorf("Unable to unmarshal rule with error: %s rule: %s, skipping.", err, inRule)
+		return elastalertRule{}, fmt.Errorf("Unable to marshal elastalert rule. Error: %s; Rule: %s. Skipping rule.", err, ruleMap)
 	}
 
-	earule := elastalertRule{}
-	if str, ok := m["name"].(string); ok {
-		earule.name = str
-	}
-	earule.rule = inRule
-
-	return earule, nil
+	eaRule.rule = string(r)
+	return eaRule, nil
 }
