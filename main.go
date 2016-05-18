@@ -24,6 +24,7 @@ var (
 	// FLAGS
 	serviceRulesLocation = flag.String("svrules", os.Getenv("SV_RULES_LOCATION"), "Path where the rules that come from the services should be written.")
 	helpFlag             = flag.Bool("help", false, "")
+	annotationKey        = flag.String("annotationKey", "nordstrom.net/elastalertAlerts", "Annotation key to read for elastalert rules")
 )
 
 const (
@@ -110,7 +111,7 @@ func gatherRulesFromServices(kubeClient *kclient.Client) []map[string]interface{
 		log.Printf("Processing Service - %s\n", name)
 
 		for k, v := range anno {
-			if k == "nordstrom.net/elastalertAlerts" {
+			if k == *annotationKey {
 				if err := yaml.Unmarshal([]byte(v), &ruleList); err != nil {
 					log.Printf("Unable to unmarshal elastalert rule for service %s. Error: %s; Rule: %s. Skipping rule.\n", name, err, v)
 				}
