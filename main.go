@@ -178,7 +178,7 @@ func processRule(ruleMap map[string]interface{}) (elastalertRule, error) {
 
 	// Set 'index' if not set
 	if _, ok := ruleMap["index"]; !ok {
-		ruleMap["index"] = fmt.Sprintf("%s-*", os.Getenv("PLATFORM-INSTANCE-NAME"))
+		ruleMap["index"] = fmt.Sprintf("%s-*", os.Getenv("PLATFORM_INSTANCE_NAME"))
 	}
 	// Set 'alert' if not set
 	if _, ok := ruleMap["alert"]; !ok {
