@@ -1,4 +1,4 @@
-package main //import "git.nordstrom.net/SM/elastalertRuleLoader"
+package main //import "github.com/nordstrom/elastalertRuleLoader"
 
 import (
 	"bufio"

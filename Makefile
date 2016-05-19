@@ -1,4 +1,3 @@
-build := build
 app_name := elastalertRuleLoader
 DOCKER_IMAGE_NAME ?= nordstrom/elastalertruleloader
 DOCKER_IMAGE_TAG  ?= 1.0.2
@@ -8,7 +7,7 @@ DOCKER_IMAGE_TAG  ?= 1.0.2
 build: *.go
 	docker run --rm \
 	  -e CGO_ENABLED=true \
-	  -e OUTPUT=make buil$(app_name) \
+	  -e OUTPUT=$(app_name) \
 	  -v $(shell pwd):/src \
 	  centurylink/golang-builder
 
