@@ -1,19 +1,20 @@
-build := build
 app_name := elastalertRuleLoader
 DOCKER_IMAGE_NAME ?= nordstrom/elastalertruleloader
 DOCKER_IMAGE_TAG  ?= 1.0.2
 
-.PHONY: build_image release_image
+.PHONY: build build_image release_image
 
-$(build)/$(app_name): 
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o $@
+build: *.go
+	docker run --rm \
+	  -e CGO_ENABLED=true \
+	  -e OUTPUT=$(app_name) \
+	  -v $(shell pwd):/src \
+	  centurylink/golang-builder
 
-build_image: Dockerfile $(build)/$(app_name)
+build_image: Dockerfile
 	@echo ">> building docker image"
-	cp Dockerfile $(build)
-	@docker build -t "$(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG)" $(build)
+	docker build -t "$(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG)" .
 
 release_image:
 	@echo ">> push docker image"
 	@docker push "$(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG)"
-

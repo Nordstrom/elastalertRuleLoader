@@ -1,12 +1,15 @@
 {
 	"ImportPath": "git.nordstrom.net/SM/elastalertRuleLoader",
-	"GoVersion": "go1.6.2",
-	"GodepVersion": "v60",
+	"GoVersion": "go1.6",
+	"GodepVersion": "v66",
+	"Packages": [
+		"./..."
+	],
 	"Deps": [
 		{
 			"ImportPath": "bitbucket.org/ww/goautoneg",
 			"Comment": "null-5",
-			"Rev": "75cd24fc2f2c2a2088577d12123ddee5f54e0675"
+			"Rev": "'75cd24fc2f2c2a2088577d12123ddee5f54e0675'"
 		},
 		{
 			"ImportPath": "github.com/Sirupsen/logrus",

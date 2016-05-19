@@ -1,4 +1,4 @@
-package main
+package main //import "github.com/nordstrom/elastalertRuleLoader"
 
 import (
 	"bufio"
@@ -24,7 +24,7 @@ var (
 	// FLAGS
 	serviceRulesLocation = flag.String("svrules", os.Getenv("SV_RULES_LOCATION"), "Path where the rules that come from the services should be written.")
 	helpFlag             = flag.Bool("help", false, "")
-	annotationKey        = flag.String("annotationKey", "nordstrom.net/elastalertAlerts", "Annotation key to read for elastalert rules")
+	annotationKey        = flag.String("annotationKey", "nordstrom.net/elastalertAlerts", "Annotation key for elastalert rules")
 )
 
 const (
