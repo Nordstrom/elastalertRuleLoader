@@ -186,7 +186,7 @@ func processRule(ruleMap map[string]interface{}) (elastalertRule, error) {
 	}
 	// Set 'alertmanager_url' if not set
 	if _, ok := ruleMap["alertmanager_url"]; !ok {
-		ruleMap["alert"] = fmt.Sprintf("http://%s:%s/", os.Getenv("PROMETHEUS_SERVICE_HOST"), os.Getenv("PROMETHEUS_SERVICE_PORT_ALERTMANAGER"))
+		ruleMap["alertmanager_url"] = fmt.Sprintf("http://%s:%s/", os.Getenv("PROMETHEUS_SERVICE_HOST"), os.Getenv("PROMETHEUS_SERVICE_PORT_ALERTMANAGER"))
 	}
 	// Set 'use_kibana4_dashboard' if not set
 	if _, ok := ruleMap["use_kibana4_dashboard"]; !ok {
