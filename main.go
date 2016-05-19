@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -22,9 +23,11 @@ import (
 
 var (
 	// FLAGS
-	serviceRulesLocation = flag.String("svrules", os.Getenv("SV_RULES_LOCATION"), "Path where the rules that come from the services should be written.")
-	helpFlag             = flag.Bool("help", false, "")
-	annotationKey        = flag.String("annotationKey", "nordstrom.net/elastalertAlerts", "Annotation key for elastalert rules")
+	mapLocation            = flag.String("map", os.Getenv("CONFIG_MAP_LOCATION"), "Location of the config map mount.")
+	serviceRulesLocation   = flag.String("svrules", os.Getenv("SV_RULES_LOCATION"), "Path where the rules that come from the services should be written.")
+	configmapRulesLocation = flag.String("cmrules", os.Getenv("CM_RULES_LOCATION"), "Path where the rules from the configmap file should be written.")
+	helpFlag               = flag.Bool("help", false, "")
+	annotationKey          = flag.String("annotationKey", "nordstrom.net/elastalertAlerts", "Annotation key for elastalert rules")
 )
 
 const (
@@ -44,13 +47,15 @@ type elastalertRule struct {
 func main() {
 	flag.Parse()
 
-	if *helpFlag || *serviceRulesLocation == "" {
+	if *helpFlag || *serviceRulesLocation == "" || *configmapRulesLocation == "" || *mapLocation == "" {
 		flag.PrintDefaults()
 		os.Exit(0)
 	}
 
 	log.Printf("Rule Updater loaded.\n")
-	log.Printf("Service Rules location: %s\n", *serviceRulesLocation)
+	log.Printf("Config Map input path: %s\n", *mapLocation)
+	log.Printf("Service Rules output path: %s\n", *serviceRulesLocation)
+	log.Printf("Config Map Rules output path: %s\n", *configmapRulesLocation)
 
 	// create client
 	var kubeClient *kclient.Client
@@ -58,6 +63,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create client: %v", err)
 	}
+
+	// initial configmap rules pull.
+	updateConfigMapRules(*mapLocation, *configmapRulesLocation)
 
 	// initial service rules pull.
 	updateServiceRules(kubeClient, *serviceRulesLocation)
@@ -68,8 +76,18 @@ func main() {
 		updateServiceRules(kubeClient, *serviceRulesLocation)
 	})
 
+	// setup file watcher, will trigger whenever the configmap updates
+	watcher, err := WatchFile(*mapLocation, time.Second, func() {
+		log.Printf("ConfigMap files updated.\n")
+		updateConfigMapRules(*mapLocation, *configmapRulesLocation)
+	})
+	if err != nil {
+		log.Fatalf("Unable to watch ConfigMap: %s\n", err)
+	}
+
 	defer func() {
 		log.Printf("Cleaning up.")
+		watcher.Close()
 	}()
 
 	select {}
@@ -151,6 +169,27 @@ func updateServiceRules(kubeClient *kclient.Client, rulesLocation string) bool {
 	return true
 }
 
+func updateConfigMapRules(mapLocation string, rulesLocation string) {
+	log.Println("Processing ConfigMap rules.")
+	fileList := GatherFilesFromConfigmap(mapLocation)
+
+	var rulesToWrite string
+
+	for _, file := range fileList {
+		content, err := processRuleFile(file)
+		if err != nil {
+			log.Printf("%s", err)
+		} else {
+			rulesToWrite += fmt.Sprintf("%s\n", content)
+		}
+	}
+
+	err = writeRules(rulesToWrite, rulesLocation)
+	if err != nil {
+		log.Printf("%s\n", err)
+	}
+}
+
 func writeRule(rule elastalertRule, rulesLocation string) error {
 	filename := fmt.Sprintf("%s/%s.service.rule", rulesLocation, rule.name)
 	f, err := os.Create(filename)
@@ -168,6 +207,36 @@ func writeRule(rule elastalertRule, rulesLocation string) error {
 	w.Flush()
 
 	return nil
+}
+
+func loadConfig(configFile string) string {
+	configData, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		log.Fatalf("Cannot read ConfigMap file: %s\n", err)
+	}
+
+	return string(configData)
+}
+
+func processRuleFile(file string) (elastalertRule, error) {
+	configManager := NewMutexConfigManager(loadConfig(file))
+	defer func() {
+		configManager.Close()
+	}()
+
+	rule := configManager.Get()
+
+	var urule map[string]interface{}
+	if err := yaml.Unmarshal([]byte(v), &ruleList); err != nil {
+		return elastalertRule{}, fmt.Errorf("Unable to unmarshal elastalert rule from configmap supplied file %s. Error: %s; Rule: %s. Skipping rule.\n", file, err, v)
+	}
+	eaRule, err := processRule(urule)
+
+	if err != nil {
+		return elastalertRule{}, err
+	}
+
+	return eaRule, nil
 }
 
 func processRule(ruleMap map[string]interface{}) (elastalertRule, error) {
@@ -200,4 +269,13 @@ func processRule(ruleMap map[string]interface{}) (elastalertRule, error) {
 
 	eaRule.rule = string(r)
 	return eaRule, nil
+}
+
+func loadConfig(configFile string) string {
+	configData, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		log.Fatalf("Cannot read ConfigMap file: %s\n", err)
+	}
+
+	return string(configData)
 }
