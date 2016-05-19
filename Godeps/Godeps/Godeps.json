@@ -1,0 +1,6 @@
+{
+	"ImportPath": "github.com/nordstrom/ElastalertRuleLoader/godeps",
+	"GoVersion": "go1.6",
+	"GodepVersion": "v63",
+	"Deps": []
+}
