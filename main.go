@@ -25,11 +25,10 @@ import (
 
 var (
 	// FLAGS
-	mapLocation            = flag.String("map", os.Getenv("CONFIG_MAP_LOCATION"), "Location of the config map mount.")
-	serviceRulesLocation   = flag.String("svrules", os.Getenv("SV_RULES_LOCATION"), "Path where the rules that come from the services should be written.")
-	configmapRulesLocation = flag.String("cmrules", os.Getenv("CM_RULES_LOCATION"), "Path where the rules from the configmap file should be written.")
-	helpFlag               = flag.Bool("help", false, "")
-	annotationKey          = flag.String("annotationKey", "nordstrom.net/elastalertAlerts", "Annotation key for elastalert rules")
+	configMapLocation = flag.String("configMapLocation", os.Getenv("CONFIG_MAP_LOCATION"), "Location of the config map mount.")
+	rulesLocation     = flag.String("rulesDirectory", os.Getenv("RULES_DIRECTORY"), "Path where the rules that come from the services should be written.")
+	helpFlag          = flag.Bool("help", false, "")
+	annotationKey     = flag.String("annotationKey", "nordstrom.net/elastalertAlerts", "Annotation key for elastalert rules")
 )
 
 const (
@@ -49,15 +48,14 @@ type elastalertRule struct {
 func main() {
 	flag.Parse()
 
-	if *helpFlag || *serviceRulesLocation == "" || *configmapRulesLocation == "" || *mapLocation == "" {
+	if *helpFlag || *rulesLocation == "" || *configMapLocation == "" {
 		flag.PrintDefaults()
 		os.Exit(0)
 	}
 
 	log.Printf("Rule Updater loaded.\n")
-	log.Printf("Config Map input path: %s\n", *mapLocation)
-	log.Printf("Service Rules output path: %s\n", *serviceRulesLocation)
-	log.Printf("Config Map Rules output path: %s\n", *configmapRulesLocation)
+	log.Printf("Config Map input path: %s\n", *configMapLocation)
+	log.Printf("Rules output path: %s\n", *rulesLocation)
 
 	// create client
 	var kubeClient *kclient.Client
@@ -67,21 +65,21 @@ func main() {
 	}
 
 	// initial configmap rules pull.
-	updateConfigMapRules(*mapLocation, *configmapRulesLocation)
+	updateConfigMapRules(*configMapLocation, *rulesLocation)
 
 	// initial service rules pull.
-	updateServiceRules(kubeClient, *serviceRulesLocation)
+	updateServiceRules(kubeClient, *rulesLocation)
 
 	// setup watcher for services
 	_ = watchForServices(kubeClient, func(interface{}) {
 		log.Printf("Services have updated.\n")
-		updateServiceRules(kubeClient, *serviceRulesLocation)
+		updateServiceRules(kubeClient, *rulesLocation)
 	})
 
 	// setup file watcher, will trigger whenever the configmap updates
-	watcher, err := WatchFile(*mapLocation, time.Second, func() {
+	watcher, err := WatchFile(*configMapLocation, time.Second, func() {
 		log.Printf("ConfigMap files updated.\n")
-		updateConfigMapRules(*mapLocation, *configmapRulesLocation)
+		updateConfigMapRules(*configMapLocation, *rulesLocation)
 	})
 	if err != nil {
 		log.Fatalf("Unable to watch ConfigMap: %s\n", err)
@@ -142,9 +140,9 @@ func gatherRulesFromServices(kubeClient *kclient.Client) []map[string]interface{
 	return ruleList
 }
 
-func GatherFilesFromConfigmap(mapLocation string) []string {
+func GatherFilesFromConfigmap(configMapLocation string) []string {
 	fileList := []string{}
-	err := filepath.Walk(mapLocation, func(path string, f os.FileInfo, err error) error {
+	err := filepath.Walk(configMapLocation, func(path string, f os.FileInfo, err error) error {
 		stat, err := os.Stat(path)
 		if err != nil {
 			log.Printf("Cannot stat %s, %s\n", path, err)
@@ -159,7 +157,7 @@ func GatherFilesFromConfigmap(mapLocation string) []string {
 	})
 	if err != nil {
 		// not sure what I might see here, so making this fatal for now
-		log.Printf("Cannot process path: %s, %s\n", mapLocation, err)
+		log.Printf("Cannot process path: %s, %s\n", configMapLocation, err)
 	}
 	return fileList
 }
@@ -193,9 +191,9 @@ func updateServiceRules(kubeClient *kclient.Client, rulesLocation string) bool {
 	return true
 }
 
-func updateConfigMapRules(mapLocation string, rulesLocation string) {
+func updateConfigMapRules(configMapLocation string, rulesLocation string) {
 	log.Println("Processing ConfigMap rules.")
-	fileList := GatherFilesFromConfigmap(mapLocation)
+	fileList := GatherFilesFromConfigmap(configMapLocation)
 
 	for _, file := range fileList {
 		content, err := processRuleFile(file)
