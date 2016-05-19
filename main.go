@@ -185,7 +185,7 @@ func updateServiceRules(kubeClient *kclient.Client, rulesLocation string) bool {
 			log.Println(err)
 			continue
 		}
-		err = writeRule(erule, rulesLocation)
+		err = writeRule(erule, rulesLocation, ".service.yaml")
 		if err != nil {
 			log.Printf("%s\n", err)
 		}
@@ -203,15 +203,15 @@ func updateConfigMapRules(mapLocation string, rulesLocation string) {
 			log.Println(err)
 			continue
 		}
-		err = writeRule(content, rulesLocation)
+		err = writeRule(content, rulesLocation, ".configmap.yaml")
 		if err != nil {
 			log.Printf("%s\n", err)
 		}
 	}
 }
 
-func writeRule(rule elastalertRule, rulesLocation string) error {
-	filename := fmt.Sprintf("%s/%s.service.rule", rulesLocation, rule.name)
+func writeRule(rule elastalertRule, rulesLocation, extension string) error {
+	filename := fmt.Sprintf("%s/%s%s", rulesLocation, rule.name, extension)
 	f, err := os.Create(filename)
 	if err != nil {
 		return fmt.Errorf("Unable to open rules file %s for writing. Error: %s", filename, err)
