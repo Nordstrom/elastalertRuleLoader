@@ -182,7 +182,7 @@ func processRule(ruleMap map[string]interface{}) (elastalertRule, error) {
 	}
 	// Set 'alert' if not set
 	if _, ok := ruleMap["alert"]; !ok {
-		ruleMap["alert"] = "alert: elastalert_modules.prometheus_alertmanager.PrometheusAlertManagerAlerter"
+		ruleMap["alert"] = "elastalert_modules.prometheus_alertmanager.PrometheusAlertManagerAlerter"
 	}
 	// Set 'alertmanager_url' if not set
 	if _, ok := ruleMap["alertmanager_url"]; !ok {
