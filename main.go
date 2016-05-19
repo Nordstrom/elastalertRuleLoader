@@ -4,10 +4,12 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -140,6 +142,28 @@ func gatherRulesFromServices(kubeClient *kclient.Client) []map[string]interface{
 	return ruleList
 }
 
+func GatherFilesFromConfigmap(mapLocation string) []string {
+	fileList := []string{}
+	err := filepath.Walk(mapLocation, func(path string, f os.FileInfo, err error) error {
+		stat, err := os.Stat(path)
+		if err != nil {
+			log.Printf("Cannot stat %s, %s\n", path, err)
+		}
+		if !stat.IsDir() {
+			// ignore the configmap /..dirname directories
+			if !(strings.Contains(path, "/..")) {
+				fileList = append(fileList, path)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		// not sure what I might see here, so making this fatal for now
+		log.Printf("Cannot process path: %s, %s\n", mapLocation, err)
+	}
+	return fileList
+}
+
 func updateServiceRules(kubeClient *kclient.Client, rulesLocation string) bool {
 	log.Println("Processing Service rules.")
 
@@ -173,20 +197,16 @@ func updateConfigMapRules(mapLocation string, rulesLocation string) {
 	log.Println("Processing ConfigMap rules.")
 	fileList := GatherFilesFromConfigmap(mapLocation)
 
-	var rulesToWrite string
-
 	for _, file := range fileList {
 		content, err := processRuleFile(file)
 		if err != nil {
-			log.Printf("%s", err)
-		} else {
-			rulesToWrite += fmt.Sprintf("%s\n", content)
+			log.Println(err)
+			continue
 		}
-	}
-
-	err = writeRules(rulesToWrite, rulesLocation)
-	if err != nil {
-		log.Printf("%s\n", err)
+		err = writeRule(content, rulesLocation)
+		if err != nil {
+			log.Printf("%s\n", err)
+		}
 	}
 }
 
@@ -227,8 +247,8 @@ func processRuleFile(file string) (elastalertRule, error) {
 	rule := configManager.Get()
 
 	var urule map[string]interface{}
-	if err := yaml.Unmarshal([]byte(v), &ruleList); err != nil {
-		return elastalertRule{}, fmt.Errorf("Unable to unmarshal elastalert rule from configmap supplied file %s. Error: %s; Rule: %s. Skipping rule.\n", file, err, v)
+	if err := yaml.Unmarshal([]byte(rule), &urule); err != nil {
+		return elastalertRule{}, fmt.Errorf("Unable to unmarshal elastalert rule from configmap supplied file %s. Error: %s; Rule: %s. Skipping rule.\n", file, err, rule)
 	}
 	eaRule, err := processRule(urule)
 
@@ -269,13 +289,4 @@ func processRule(ruleMap map[string]interface{}) (elastalertRule, error) {
 
 	eaRule.rule = string(r)
 	return eaRule, nil
-}
-
-func loadConfig(configFile string) string {
-	configData, err := ioutil.ReadFile(configFile)
-	if err != nil {
-		log.Fatalf("Cannot read ConfigMap file: %s\n", err)
-	}
-
-	return string(configData)
 }

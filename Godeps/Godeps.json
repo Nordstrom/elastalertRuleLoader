@@ -1,10 +1,7 @@
 {
-	"ImportPath": "git.nordstrom.net/SM/elastalertRuleLoader",
+	"ImportPath": "github.com/nordstrom/ElastalertRuleLoader",
 	"GoVersion": "go1.6",
-	"GodepVersion": "v66",
-	"Packages": [
-		"./..."
-	],
+	"GodepVersion": "v63",
 	"Deps": [
 		{
 			"ImportPath": "bitbucket.org/ww/goautoneg",
@@ -149,6 +146,11 @@
 		{
 			"ImportPath": "golang.org/x/net/context",
 			"Rev": "c2528b2dd8352441850638a8bb678c2ad056fd3e"
+		},
+		{
+			"ImportPath": "gopkg.in/fsnotify.v1",
+			"Comment": "v1.2.10",
+			"Rev": "875cf421b32f8f1b31bd43776297876d01542279"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",
