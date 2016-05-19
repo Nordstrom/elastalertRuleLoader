@@ -2,9 +2,9 @@ app_name := elastalertRuleLoader
 DOCKER_IMAGE_NAME ?= nordstrom/elastalertruleloader
 DOCKER_IMAGE_TAG  ?= 1.0.2
 
-.PHONY: build build_image release_image
+.PHONY: build_image release_image release
 
-build: *.go
+$(app_name): *.go
 	docker run --rm \
 	  -e CGO_ENABLED=true \
 	  -e OUTPUT=$(app_name) \
@@ -18,3 +18,5 @@ build_image: Dockerfile
 release_image:
 	@echo ">> push docker image"
 	@docker push "$(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG)"
+
+release: $(app_name) build_image release_image
