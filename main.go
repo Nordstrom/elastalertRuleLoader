@@ -164,11 +164,11 @@ func GatherFilesFromConfigmap(configMapLocation string) []string {
 
 func updateServiceRules(kubeClient *kclient.Client, rulesLocation string) bool {
 	log.Println("Processing Service rules.")
-
+	ruleFileExt := ".service.yaml"
 	ruleList := gatherRulesFromServices(kubeClient)
 
 	// delete old rules
-	cmd := exec.Command("rm", "-rf", "*.service.rule")
+	cmd := exec.Command("rm", "-rf", fmt.Sprintf("*%s", ruleFileExt))
 	log.Printf("Deleting old service rules.\n")
 	err := cmd.Start()
 	if err != nil {
@@ -183,7 +183,7 @@ func updateServiceRules(kubeClient *kclient.Client, rulesLocation string) bool {
 			log.Println(err)
 			continue
 		}
-		err = writeRule(erule, rulesLocation, ".service.yaml")
+		err = writeRule(erule, rulesLocation, ruleFileExt)
 		if err != nil {
 			log.Printf("%s\n", err)
 		}
@@ -193,6 +193,7 @@ func updateServiceRules(kubeClient *kclient.Client, rulesLocation string) bool {
 
 func updateConfigMapRules(configMapLocation string, rulesLocation string) {
 	log.Println("Processing ConfigMap rules.")
+	ruleFileExt := ".configmap.yaml"
 	fileList := GatherFilesFromConfigmap(configMapLocation)
 
 	for _, file := range fileList {
@@ -201,7 +202,7 @@ func updateConfigMapRules(configMapLocation string, rulesLocation string) {
 			log.Println(err)
 			continue
 		}
-		err = writeRule(content, rulesLocation, ".configmap.yaml")
+		err = writeRule(content, rulesLocation, ruleFileExt)
 		if err != nil {
 			log.Printf("%s\n", err)
 		}
