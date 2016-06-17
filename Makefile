@@ -13,6 +13,8 @@ $(app_name): *.go
 	  -v $(shell pwd):/src \
 	  centurylink/golang-builder
 
+	chmod 0755 $(app_name)
+
 build/image: $(app_name) Dockerfile
 	docker build \
 		-t $(container_name) .
