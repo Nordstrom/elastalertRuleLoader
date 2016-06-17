@@ -25,7 +25,7 @@ import (
 
 var (
 	// FLAGS
-	configMapLocation = flag.String("configMapLocation", os.Getenv("CONFIG_MAP_LOCATION"), "Location of the config map mount.")
+	configMapLocation = flag.String("configMapLocation", os.Getenv("CONFIG_MAP_DIRECTORY"), "Location of the config map mount.")
 	rulesLocation     = flag.String("rulesDirectory", os.Getenv("RULES_DIRECTORY"), "Path where the rules that come from the services should be written.")
 	helpFlag          = flag.Bool("help", false, "")
 	annotationKey     = flag.String("annotationKey", "nordstrom.net/elastalertAlerts", "Annotation key for elastalert rules")
@@ -279,6 +279,10 @@ func processRule(ruleMap map[string]interface{}) (elastalertRule, error) {
 	// Set 'use_kibana4_dashboard' if not set
 	if _, ok := ruleMap["use_kibana4_dashboard"]; !ok {
 		ruleMap["use_kibana4_dashboard"] = "/_plugin/kibana/#/dashboard"
+	}
+	// Set 'use_kibana4_dashboard' if not set
+	if _, ok := ruleMap["aws_region"]; !ok {
+		ruleMap["aws_region"] = os.Getenv("ELASTICSEARCH_AWS_REGION")
 	}
 
 	r, err := yaml.Marshal(&ruleMap)
