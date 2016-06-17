@@ -1,8 +1,10 @@
-app_name := elastalertRuleLoader
-DOCKER_IMAGE_NAME ?= nordstrom/elastalertruleloader
-DOCKER_IMAGE_TAG  ?= 1.0.3
+container_name := elastalertruleloader
+container_registry := quay.io/nordstrom
+container_release := 1.0.3
 
-.PHONY: build_image release_image release
+app_name := elastalertRuleLoader
+
+.PHONY: build/image tag/image push/image
 
 $(app_name): *.go
 	docker run --rm \
@@ -11,12 +13,14 @@ $(app_name): *.go
 	  -v $(shell pwd):/src \
 	  centurylink/golang-builder
 
-build_image: Dockerfile
-	@echo ">> building docker image"
-	docker build -t "$(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG)" .
+build/image: $(app_name) Dockerfile
+	docker build \
+		-t $(container_name) .
 
-release_image:
-	@echo ">> push docker image"
-	@docker push "$(DOCKER_IMAGE_NAME):$(DOCKER_IMAGE_TAG)"
+tag/image: build/image
+	docker tag $(container_name) $(container_registry)/$(container_name):$(container_release)
 
-release: $(app_name) build_image release_image
+push/image: tag/image
+	docker push $(container_registry)/$(container_name):$(container_release)
+
+release: build/image push/image
