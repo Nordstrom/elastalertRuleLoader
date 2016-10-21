@@ -1,6 +1,6 @@
 container_name := elastalertruleloader
 container_registry := quay.io/nordstrom
-container_release := 1.0.3
+container_release := 1.0.4
 
 app_name := elastalertRuleLoader
 
