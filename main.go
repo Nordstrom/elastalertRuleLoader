@@ -264,26 +264,26 @@ func processRule(ruleMap map[string]interface{}) (elastalertRule, error) {
 		eaRule.name = str.(string)
 	}
 
-	// Set 'index' if not set
-	if _, ok := ruleMap["index"]; !ok {
-		ruleMap["index"] = fmt.Sprintf("%s-*", os.Getenv("PLATFORM_INSTANCE_NAME"))
-	}
-	// Set 'alert' if not set
-	if _, ok := ruleMap["alert"]; !ok {
-		ruleMap["alert"] = "elastalert_modules.prometheus_alertmanager.PrometheusAlertManagerAlerter"
-	}
-	// Set 'alertmanager_url' if not set
-	if _, ok := ruleMap["alertmanager_url"]; !ok {
-		ruleMap["alertmanager_url"] = fmt.Sprintf("http://%s:%s/", os.Getenv("ALERTMANAGER_SERVICE_HOST"), os.Getenv("ALERTMANAGER_SERVICE_PORT"))
-	}
+	// // Set 'index' if not set
+	// if _, ok := ruleMap["index"]; !ok {
+	// 	ruleMap["index"] = fmt.Sprintf("%s-*", os.Getenv("PLATFORM_INSTANCE_NAME"))
+	// }
+	// // Set 'alert' if not set
+	// if _, ok := ruleMap["alert"]; !ok {
+	// 	ruleMap["alert"] = "elastalert_modules.prometheus_alertmanager.PrometheusAlertManagerAlerter"
+	// }
+	// // Set 'alertmanager_url' if not set
+	// if _, ok := ruleMap["alertmanager_url"]; !ok {
+	// 	ruleMap["alertmanager_url"] = fmt.Sprintf("http://%s:%s/", os.Getenv("ALERTMANAGER_SERVICE_HOST"), os.Getenv("ALERTMANAGER_SERVICE_PORT"))
+	// }
 	// Set 'use_kibana4_dashboard' if not set
-	if _, ok := ruleMap["use_kibana4_dashboard"]; !ok {
-		ruleMap["use_kibana4_dashboard"] = "/_plugin/kibana/#/dashboard"
-	}
-	// Set 'use_kibana4_dashboard' if not set
-	if _, ok := ruleMap["aws_region"]; !ok {
-		ruleMap["aws_region"] = os.Getenv("ELASTICSEARCH_AWS_REGION")
-	}
+	// if _, ok := ruleMap["use_kibana4_dashboard"]; !ok {
+	// 	ruleMap["use_kibana4_dashboard"] = "/_plugin/kibana/#/dashboard"
+	// }
+	// // Set 'use_kibana4_dashboard' if not set
+	// if _, ok := ruleMap["aws_region"]; !ok {
+	// 	ruleMap["aws_region"] = os.Getenv("ELASTICSEARCH_AWS_REGION")
+	// }
 
 	r, err := yaml.Marshal(&ruleMap)
 	if err != nil {
