@@ -122,6 +122,7 @@ func gatherRulesFromServices(kubeClient *kclient.Client) []map[string]interface{
 	}
 
 	var ruleList []map[string]interface{}
+	var rule map[string]interface{}
 
 	for _, svc := range serviceList.Items {
 		anno := svc.GetObjectMeta().GetAnnotations()
@@ -130,9 +131,11 @@ func gatherRulesFromServices(kubeClient *kclient.Client) []map[string]interface{
 
 		for k, v := range anno {
 			if k == *annotationKey {
-				if err := yaml.Unmarshal([]byte(v), &ruleList); err != nil {
+				if err := yaml.Unmarshal([]byte(v), &rule); err != nil {
 					log.Printf("Unable to unmarshal elastalert rule for service %s. Error: %s; Rule: %s. Skipping rule.\n", name, err, v)
+					continue
 				}
+				ruleList = append(ruleList, rule)
 			}
 		}
 	}
